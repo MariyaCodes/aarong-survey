@@ -4,25 +4,23 @@ import SurveyResponse from '../models/SurveyResponse.js';
 import { appendSurveyToSheet } from '../services/googleSheets.js';
 
 export const getProducts = async (_req, res) => {
-  const products = await Product.find({ isActive: true }).sort({ category: 1, name: 1 });
+  const products = await Product.findAll();
+  products.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
   res.json(products);
 };
 
 export const getProductSurvey = async (req, res) => {
-  const product = await Product.findOne({ productId: req.params.productId, isActive: true });
-  if (!product) {
+  const product = await Product.findByProductId(req.params.productId);
+  if (!product || product.isActive === false) {
     return res.status(404).json({ message: 'Product not found' });
   }
 
-  const line = await ProductLine.findOne({ lineId: product.productLineId, isActive: true });
-  if (!line) {
+  const line = await ProductLine.findByLineId(product.productLineId);
+  if (!line || line.isActive === false) {
     return res.status(404).json({ message: 'Product line questions not found' });
   }
 
-  const existing = await SurveyResponse.findOne({
-    employeeId: req.user.employeeId,
-    productId: product.productId,
-  });
+  const existing = await SurveyResponse.findByEmployeeAndProduct(req.user.employeeId, product.productId);
 
   const questions = line.questions
     .filter((q) => q.isActive)
@@ -46,20 +44,17 @@ export const submitSurvey = async (req, res) => {
     return res.status(400).json({ message: 'Product and answers are required' });
   }
 
-  const product = await Product.findOne({ productId, isActive: true });
-  if (!product) {
+  const product = await Product.findByProductId(productId);
+  if (!product || product.isActive === false) {
     return res.status(404).json({ message: 'Product not found' });
   }
 
-  const line = await ProductLine.findOne({ lineId: product.productLineId });
-  if (!line) {
+  const line = await ProductLine.findByLineId(product.productLineId);
+  if (!line || line.isActive === false) {
     return res.status(404).json({ message: 'Product line not found' });
   }
 
-  const existing = await SurveyResponse.findOne({
-    employeeId: req.user.employeeId,
-    productId: product.productId,
-  });
+  const existing = await SurveyResponse.findByEmployeeAndProduct(req.user.employeeId, product.productId);
 
   if (existing) {
     return res.status(409).json({ message: 'You have already submitted this product survey' });
@@ -75,20 +70,23 @@ export const submitSurvey = async (req, res) => {
     productLineName: line.name,
     category: product.category,
     answers,
+    syncedToSheet: false,
   });
 
   const synced = await appendSurveyToSheet(response);
   if (synced) {
-    response.syncedToSheet = true;
-    await response.save();
+    await SurveyResponse.updateById(response.id, { syncedToSheet: true });
   }
 
   res.status(201).json({ message: 'Survey submitted successfully', response });
 };
 
 export const getMySurveys = async (req, res) => {
-  const responses = await SurveyResponse.find({ employeeId: req.user.employeeId }).sort({
-    createdAt: -1,
+  const responses = await SurveyResponse.findByEmployeeId(req.user.employeeId);
+  responses.sort((a, b) => {
+    const aTime = a.createdAt?.toMillis?.() ?? 0;
+    const bTime = b.createdAt?.toMillis?.() ?? 0;
+    return bTime - aTime;
   });
   res.json(responses);
 };

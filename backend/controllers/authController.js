@@ -10,12 +10,9 @@ export const employeeLogin = async (req, res) => {
     return res.status(400).json({ message: 'Employee ID and PIN are required' });
   }
 
-  const employee = await Employee.findOne({
-    employeeId: employeeId.trim().toUpperCase(),
-    isActive: true,
-  });
+  const employee = await Employee.findByEmployeeId(employeeId.trim().toUpperCase());
 
-  if (!employee) {
+  if (!employee || !employee.isActive) {
     return res.status(401).json({ message: 'Invalid Employee ID or PIN' });
   }
 
@@ -26,7 +23,7 @@ export const employeeLogin = async (req, res) => {
 
   const token = generateToken({
     role: 'employee',
-    id: employee._id.toString(),
+    id: employee.id,
     employeeId: employee.employeeId,
     name: employee.name,
   });
@@ -48,7 +45,7 @@ export const hostLogin = async (req, res) => {
     return res.status(400).json({ message: 'Username and password are required' });
   }
 
-  const host = await Host.findOne({ username: username.trim().toLowerCase() });
+  const host = await Host.findByUsername(username.trim().toLowerCase());
   if (!host) {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
@@ -60,7 +57,7 @@ export const hostLogin = async (req, res) => {
 
   const token = generateToken({
     role: 'host',
-    id: host._id.toString(),
+    id: host.id,
     username: host.username,
     name: host.name,
   });

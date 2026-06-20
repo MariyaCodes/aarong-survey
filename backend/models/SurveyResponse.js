@@ -1,30 +1,89 @@
-import mongoose from 'mongoose';
+import { getDb } from '../config/db.js';
+import admin from 'firebase-admin';
 
-const answerSchema = new mongoose.Schema(
-  {
-    questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    questionText: { type: String, required: true },
-    answer: { type: mongoose.Schema.Types.Mixed, required: true },
+const db = () => getDb();
+
+const SurveyResponse = {
+  async create(data) {
+    const docRef = await db().collection('surveyResponses').add({
+      ...data,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { id: docRef.id, ...data };
   },
-  { _id: false }
-);
 
-const surveyResponseSchema = new mongoose.Schema(
-  {
-    employeeId: { type: String, required: true },
-    employeeName: { type: String, required: true },
-    productId: { type: String, required: true },
-    productName: { type: String, required: true },
-    productVariant: { type: String, required: true },
-    productLineId: { type: String, required: true },
-    productLineName: { type: String, required: true },
-    category: { type: String, required: true },
-    answers: [answerSchema],
-    syncedToSheet: { type: Boolean, default: false },
+  async findById(id) {
+    const doc = await db().collection('surveyResponses').doc(id).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } : null;
   },
-  { timestamps: true }
-);
 
-surveyResponseSchema.index({ employeeId: 1, productId: 1 }, { unique: true });
+  async findByEmployeeAndProduct(employeeId, productId) {
+    const query = await db()
+      .collection('surveyResponses')
+      .where('employeeId', '==', employeeId)
+      .where('productId', '==', productId)
+      .get();
+    return query.empty ? null : { id: query.docs[0].id, ...query.docs[0].data() };
+  },
 
-export default mongoose.model('SurveyResponse', surveyResponseSchema);
+  async findByEmployeeId(employeeId) {
+    const query = await db().collection('surveyResponses').where('employeeId', '==', employeeId).get();
+    return query.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async findByProductId(productId) {
+    const query = await db().collection('surveyResponses').where('productId', '==', productId).get();
+    return query.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async findAll() {
+    const query = await db().collection('surveyResponses').get();
+    return query.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async updateById(id, updates) {
+    await db().collection('surveyResponses').doc(id).update({
+      ...updates,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return this.findById(id);
+  },
+
+  async updateMany(updates) {
+    const snapshot = await db().collection('surveyResponses').get();
+    const results = [];
+    for (const doc of snapshot.docs) {
+      await doc.ref.update({
+        ...updates,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      results.push({ id: doc.id, ...doc.data(), ...updates });
+    }
+    return results;
+  },
+
+  async countAll() {
+    const snapshot = await db().collection('surveyResponses').get();
+    return snapshot.size;
+  },
+
+  async updateMany(updates) {
+    const snapshot = await db().collection('surveyResponses').get();
+    const results = [];
+    for (const doc of snapshot.docs) {
+      await doc.ref.update({
+        ...updates,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      results.push({ id: doc.id, ...doc.data(), ...updates });
+    }
+    return results;
+  },
+
+  async deleteById(id) {
+    await db().collection('surveyResponses').doc(id).delete();
+  },
+};
+
+export default SurveyResponse;

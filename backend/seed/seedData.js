@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import mongoose from 'mongoose';
+import admin from 'firebase-admin';
 import connectDB from '../config/db.js';
 import Employee from '../models/Employee.js';
 import Host from '../models/Host.js';
@@ -113,6 +113,7 @@ const productLines = [
     category: 'Aarong Earth',
     description: 'Herbal face washes with bursting beads — shared survey for all variants.',
     questions: faceWashQuestions,
+    isActive: true,
   },
   {
     lineId: 'earth-face-mask',
@@ -292,30 +293,36 @@ const products = [
 ];
 
 const employees = [
-  { employeeId: 'EMP001', name: 'Rahim Uddin', pin: '1234', department: 'Retail' },
-  { employeeId: 'EMP002', name: 'Fatima Begum', pin: '1234', department: 'Quality' },
-  { employeeId: 'EMP003', name: 'Karim Hassan', pin: '1234', department: 'Warehouse' },
-  { employeeId: 'EMP004', name: 'Nusrat Jahan', pin: '1234', department: 'Sales' },
-  { employeeId: 'EMP005', name: 'Saiful Islam', pin: '1234', department: 'Production' },
+  { employeeId: 'EMP001', name: 'Rahim Uddin', pin: '1234', department: 'Retail', isActive: true },
+  { employeeId: 'EMP002', name: 'Fatima Begum', pin: '1234', department: 'Quality', isActive: true },
+  { employeeId: 'EMP003', name: 'Karim Hassan', pin: '1234', department: 'Warehouse', isActive: true },
+  { employeeId: 'EMP004', name: 'Nusrat Jahan', pin: '1234', department: 'Sales', isActive: true },
+  { employeeId: 'EMP005', name: 'Saiful Islam', pin: '1234', department: 'Production', isActive: true },
 ];
 
 const seed = async () => {
   await connectDB();
+  const db = admin.firestore();
 
   console.log('Clearing existing data...');
-  await Promise.all([
-    Employee.deleteMany({}),
-    Host.deleteMany({}),
-    ProductLine.deleteMany({}),
-    Product.deleteMany({}),
-    mongoose.connection.collection('surveyresponses').deleteMany({}).catch(() => {}),
-  ]);
+  // Clear collections
+  const collections = ['employees', 'hosts', 'productLines', 'products', 'surveyResponses'];
+  for (const collectionName of collections) {
+    const snapshot = await db.collection(collectionName).get();
+    for (const doc of snapshot.docs) {
+      await doc.ref.delete();
+    }
+  }
 
   console.log('Seeding product lines...');
-  await ProductLine.insertMany(productLines);
+  for (const line of productLines) {
+    await ProductLine.create(line);
+  }
 
   console.log('Seeding products...');
-  await Product.insertMany(products);
+  for (const product of products) {
+    await Product.create(product);
+  }
 
   console.log('Seeding employees...');
   for (const emp of employees) {
@@ -339,7 +346,7 @@ const seed = async () => {
   console.log(`\n  Products: ${products.length}`);
   console.log(`  Product lines: ${productLines.length}`);
 
-  await mongoose.disconnect();
+  process.exit(0);
 };
 
 seed().catch((err) => {
