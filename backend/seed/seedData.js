@@ -297,6 +297,11 @@ const employees = [
   { employeeId: 'EMP003', name: 'Karim Hassan', pin: '1234', department: 'Warehouse', isActive: true },
   { employeeId: 'EMP004', name: 'Nusrat Jahan', pin: '1234', department: 'Sales', isActive: true },
   { employeeId: 'EMP005', name: 'Saiful Islam', pin: '1234', department: 'Production', isActive: true },
+  { employeeId: 'EMP006', name: 'Mina Akter', pin: '5678', department: 'Logistics', isActive: true },
+  { employeeId: 'EMP007', name: 'Tanvir Rahman', pin: '5678', department: 'Inventory', isActive: true },
+  { employeeId: 'EMP008', name: 'Anwara Khatun', pin: '5678', department: 'Customer Service', isActive: true },
+  { employeeId: 'EMP009', name: 'Jayed Ali', pin: '9012', department: 'Marketing', isActive: true },
+  { employeeId: 'EMP010', name: 'Shamima Sultana', pin: '9012', department: 'Operations', isActive: true },
 ];
 
 const seed = async () => {
@@ -336,6 +341,11 @@ const seed = async () => {
     username: 'host',
     name: 'Survey Host',
     password: await bcrypt.hash('admin123', 10),
+  });
+  await Host.create({
+    username: 'manager',
+    name: 'Survey Manager',
+    password: await bcrypt.hash('manager123', 10),
   });
 
   console.log('\n✅ Seed complete!');

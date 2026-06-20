@@ -41,6 +41,8 @@ export default function HostLogin({ onLogin }) {
               type="text"
               placeholder="host"
               value={username}
+              autoCapitalize="none"
+              autoCorrect="off"
               onChange={(e) => setUsername(e.target.value)}
               required
             />

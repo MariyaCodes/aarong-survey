@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
 function QuestionInput({ question, value, onChange }) {
@@ -26,7 +27,7 @@ function QuestionInput({ question, value, onChange }) {
           <label key={opt} className={`option-item ${value === opt ? 'selected' : ''}`}>
             <input
               type="radio"
-              name={question._id}
+              name={`question-${question.order}`}
               checked={value === opt}
               onChange={() => onChange(opt)}
             />
@@ -164,14 +165,14 @@ export default function SurveyPage() {
           {!surveyData.alreadySubmitted && (
             <form onSubmit={submitSurvey} className="card">
               {surveyData.questions.map((q, i) => (
-                <div key={q._id} className="question-block">
+                <div key={q.order ?? i} className="question-block">
                   <p className="question-text">
                     {i + 1}. {q.text}
                   </p>
                   <QuestionInput
                     question={q}
-                    value={answers[q._id]?.answer ?? (q.type === 'checkbox' ? [] : '')}
-                    onChange={(val) => setAnswer(q._id, q.text, val)}
+                    value={answers[q.order]?.answer ?? (q.type === 'checkbox' ? [] : '')}
+                    onChange={(val) => setAnswer(q.order ?? i, q.text, val)}
                   />
                 </div>
               ))}

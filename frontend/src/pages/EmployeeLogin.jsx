@@ -41,7 +41,9 @@ export default function EmployeeLogin({ onLogin }) {
               type="text"
               placeholder="e.g. EMP001"
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
+              autoCapitalize="none"
+              autoCorrect="off"
+              onChange={(e) => setEmployeeId(e.target.value)}
               required
             />
           </div>

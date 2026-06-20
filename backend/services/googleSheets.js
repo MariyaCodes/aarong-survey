@@ -1,5 +1,4 @@
 import { GoogleSpreadsheet } from 'google-spreadsheet';
-import { JWT } from 'google-auth-library';
 
 const isConfigured = () =>
   process.env.GOOGLE_SHEET_ID &&
@@ -7,22 +6,20 @@ const isConfigured = () =>
   process.env.GOOGLE_PRIVATE_KEY;
 
 const getDoc = async () => {
-  const auth = new JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID);
+  await doc.useServiceAccountAuth({
+    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   });
-
-  const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, auth);
   await doc.loadInfo();
   return doc;
 };
 
-const ensureSheet = async (doc) => {
-  let sheet = doc.sheetsByTitle['Survey Responses'];
+const ensureSheet = async (doc, title = 'Survey Responses') => {
+  let sheet = doc.sheetsByTitle[title];
   if (!sheet) {
     sheet = await doc.addSheet({
-      title: 'Survey Responses',
+      title,
       headerValues: [
         'Timestamp',
         'Employee ID',
@@ -45,7 +42,8 @@ export const appendSurveyToSheet = async (response) => {
 
   try {
     const doc = await getDoc();
-    const sheet = await ensureSheet(doc);
+    const summarySheet = await ensureSheet(doc);
+    const productSheet = await ensureSheet(doc, `Product ${response.productId}`);
 
     const rows = response.answers.map((a) => ({
       Timestamp: response.createdAt?.toISOString?.() || new Date().toISOString(),
@@ -60,7 +58,8 @@ export const appendSurveyToSheet = async (response) => {
       Answer: Array.isArray(a.answer) ? a.answer.join(', ') : String(a.answer),
     }));
 
-    await sheet.addRows(rows);
+    await summarySheet.addRows(rows);
+    await productSheet.addRows(rows);
     return true;
   } catch (err) {
     console.error('Google Sheets sync failed:', err.message);
