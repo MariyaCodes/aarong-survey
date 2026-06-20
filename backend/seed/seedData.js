@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import admin from 'firebase-admin';
-import connectDB from '../config/db.js';
+import connectDB, { getDb } from '../config/db.js';
 import Employee from '../models/Employee.js';
 import Host from '../models/Host.js';
 import ProductLine from '../models/ProductLine.js';
@@ -302,7 +301,7 @@ const employees = [
 
 const seed = async () => {
   await connectDB();
-  const db = admin.firestore();
+  const db = getDb();
 
   console.log('Clearing existing data...');
   // Clear collections
@@ -353,3 +352,5 @@ seed().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+

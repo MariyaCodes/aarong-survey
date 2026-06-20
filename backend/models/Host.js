@@ -1,14 +1,12 @@
 import { getDb } from '../config/db.js';
-import admin from 'firebase-admin';
-
 const db = () => getDb();
 
 const Host = {
   async create(data) {
     const docRef = await db().collection('hosts').add({
       ...data,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     return { id: docRef.id, ...data };
   },
@@ -32,7 +30,7 @@ const Host = {
     const docRef = db().collection('hosts').doc(id);
     await docRef.update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: new Date(),
     });
     return this.findById(id);
   },
@@ -43,3 +41,4 @@ const Host = {
 };
 
 export default Host;
+

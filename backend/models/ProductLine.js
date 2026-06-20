@@ -1,6 +1,4 @@
 import { getDb } from '../config/db.js';
-import admin from 'firebase-admin';
-
 const db = () => getDb();
 
 const ProductLine = {
@@ -8,8 +6,8 @@ const ProductLine = {
     const docRef = await db().collection('productLines').add({
       ...data,
       isActive: data.isActive !== false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     return { id: docRef.id, ...data };
   },
@@ -39,7 +37,7 @@ const ProductLine = {
   async updateById(id, updates) {
     await db().collection('productLines').doc(id).update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: new Date(),
     });
     return this.findById(id);
   },
@@ -50,3 +48,4 @@ const ProductLine = {
 };
 
 export default ProductLine;
+

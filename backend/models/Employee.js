@@ -1,6 +1,4 @@
 import { getDb } from '../config/db.js';
-import admin from 'firebase-admin';
-
 const db = () => getDb();
 
 const Employee = {
@@ -9,8 +7,8 @@ const Employee = {
     const docData = {
       ...data,
       isActive: data.isActive !== false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     await docRef.set(docData);
     return { id: docRef.id, ...docData };
@@ -45,7 +43,7 @@ const Employee = {
     const docRef = db().collection('employees').doc(employeeId);
     await docRef.update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: new Date(),
     });
     return this.findById(employeeId);
   },
@@ -56,3 +54,4 @@ const Employee = {
 };
 
 export default Employee;
+

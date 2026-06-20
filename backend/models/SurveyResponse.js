@@ -1,14 +1,12 @@
 import { getDb } from '../config/db.js';
-import admin from 'firebase-admin';
-
 const db = () => getDb();
 
 const SurveyResponse = {
   async create(data) {
     const docRef = await db().collection('surveyResponses').add({
       ...data,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     return { id: docRef.id, ...data };
   },
@@ -45,7 +43,7 @@ const SurveyResponse = {
   async updateById(id, updates) {
     await db().collection('surveyResponses').doc(id).update({
       ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: new Date(),
     });
     return this.findById(id);
   },
@@ -56,7 +54,7 @@ const SurveyResponse = {
     for (const doc of snapshot.docs) {
       await doc.ref.update({
         ...updates,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: new Date(),
       });
       results.push({ id: doc.id, ...doc.data(), ...updates });
     }
@@ -74,7 +72,7 @@ const SurveyResponse = {
     for (const doc of snapshot.docs) {
       await doc.ref.update({
         ...updates,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: new Date(),
       });
       results.push({ id: doc.id, ...doc.data(), ...updates });
     }
@@ -87,3 +85,4 @@ const SurveyResponse = {
 };
 
 export default SurveyResponse;
+
