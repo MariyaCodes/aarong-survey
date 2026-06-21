@@ -1,7 +1,7 @@
 import Product from '../models/Product.js';
 import ProductLine from '../models/ProductLine.js';
 import SurveyResponse from '../models/SurveyResponse.js';
-import { appendSurveyToSheet } from '../utils/googleSheets.js';
+import { appendSurveyToSheet } from '../services/googleSheets.js';
 
 const appendReviewToSheet = async (response) => {
   try {
@@ -13,16 +13,18 @@ const appendReviewToSheet = async (response) => {
 };
 
 export const checkReview = async (req, res) => {
-  const { productId, employeeId } = req.params;
-  if (!productId || !employeeId) {
+  const { productId, employeeId: rawEmployeeId } = req.params;
+  if (!productId || !rawEmployeeId) {
     return res.status(400).json({ message: 'Product ID and Employee ID are required' });
   }
 
-  if (employeeId.trim().toUpperCase() !== req.user.employeeId) {
+  const employeeId = rawEmployeeId.trim().toUpperCase();
+  const currentEmployeeId = req.user.employeeId?.trim().toUpperCase();
+  if (!currentEmployeeId || employeeId !== currentEmployeeId) {
     return res.status(403).json({ message: 'Employee ID must match the logged-in user' });
   }
 
-  const existing = await SurveyResponse.findByEmployeeAndProduct(employeeId.trim().toUpperCase(), productId);
+  const existing = await SurveyResponse.findByEmployeeAndProduct(employeeId, productId.trim());
   if (existing) {
     return res.json({ alreadyReviewed: true, message: 'You have already reviewed this product.' });
   }
@@ -47,7 +49,7 @@ export const submitReview = async (req, res) => {
     return res.status(404).json({ message: 'Product line not found' });
   }
 
-  const employeeId = req.user.employeeId;
+  const employeeId = req.user.employeeId?.trim().toUpperCase();
   const existing = await SurveyResponse.findByEmployeeAndProduct(employeeId, product.productId);
   if (existing) {
     return res.status(409).json({ message: 'You have already reviewed this product.' });

@@ -76,8 +76,12 @@ export default function SurveyPage() {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setEmployeeId(parsed.employeeId);
+      try {
+        const parsed = JSON.parse(storedUser);
+        setEmployeeId(parsed.employeeId?.trim().toUpperCase() ?? '');
+      } catch {
+        setEmployeeId('');
+      }
     }
 
     Promise.all([api.getProducts(), api.getMySurveys()])
@@ -89,14 +93,32 @@ export default function SurveyPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const getStoredEmployeeId = () => {
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return '';
+    try {
+      const parsed = JSON.parse(storedUser);
+      return parsed.employeeId?.trim().toUpperCase() ?? '';
+    } catch {
+      return '';
+    }
+  };
+
   const openSurvey = async (product) => {
     setError('');
     setSuccess('');
     setSelectedProduct(product);
     setAnswers({});
+
+    const currentEmployeeId = employeeId || getStoredEmployeeId();
+    if (!currentEmployeeId) {
+      setError('Employee ID is required to review this product. Please login again.');
+      return;
+    }
+
     try {
       const data = await api.getProductSurvey(product.productId);
-      const reviewCheck = await api.checkReview(product.productId, employeeId);
+      const reviewCheck = await api.checkReview(product.productId, currentEmployeeId);
       const alreadyReviewed = reviewCheck.alreadyReviewed || data.alreadySubmitted;
       const message = reviewCheck.message || (data.alreadySubmitted ? 'You have already completed this product survey.' : '');
       setSurveyData({ ...data, alreadyReviewed, reviewCheckMessage: message });
