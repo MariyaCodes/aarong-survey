@@ -23,7 +23,7 @@ export const getProductSurvey = async (req, res) => {
   const existing = await SurveyResponse.findByEmployeeAndProduct(req.user.employeeId, product.productId);
 
   const questions = line.questions
-    .filter((q) => q.isActive)
+    .filter((q) => q.isActive !== false)
     .sort((a, b) => a.order - b.order);
 
   res.json({
