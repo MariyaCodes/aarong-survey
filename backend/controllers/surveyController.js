@@ -54,14 +54,15 @@ export const submitSurvey = async (req, res) => {
     return res.status(404).json({ message: 'Product line not found' });
   }
 
-  const existing = await SurveyResponse.findByEmployeeAndProduct(req.user.employeeId, product.productId);
+  const employeeId = req.user.employeeId?.trim().toUpperCase();
+  const existing = await SurveyResponse.findByEmployeeAndProduct(employeeId, product.productId);
 
   if (existing) {
     return res.status(409).json({ message: 'You have already submitted this product survey' });
   }
 
   const response = await SurveyResponse.create({
-    employeeId: req.user.employeeId,
+    employeeId,
     employeeName: req.user.name,
     productId: product.productId,
     productName: product.name,

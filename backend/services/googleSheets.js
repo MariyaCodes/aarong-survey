@@ -22,19 +22,79 @@ const ensureSheet = async (doc, title = 'Survey Responses') => {
       title,
       headerValues: [
         'Timestamp',
-        'Employee ID',
         'Employee Name',
-        'Category',
-        'Product Line',
-        'Product Name',
-        'Variant',
+        'Employee ID',
         'Product ID',
-        'Question',
-        'Answer',
+        'Product Name',
+        'Product Type',
+        'Brand',
+        'Category',
+        'Overall Quality Rating',
+        'Product-Specific Rating',
+        'Packaging Rating',
+        'Price or Recommendation Rating',
+        'Improvement Suggestion',
+        'Average Rating',
       ],
     });
   }
   return sheet;
+};
+
+const normalizeAnswer = (answer) => {
+  if (answer === undefined || answer === null) return '';
+  if (Array.isArray(answer)) return answer.join(', ');
+  return String(answer);
+};
+
+const findAnswer = (answers, predicate) => {
+  const found = answers.find((item) => predicate(item.questionText || ''));
+  return found ? normalizeAnswer(found.answer) : '';
+};
+
+const buildRow = (response) => {
+  const answers = response.answers || [];
+  const lower = (text) => String(text || '').toLowerCase();
+
+  const overall = findAnswer(answers, (text) => /overall quality|overall rating|rate the overall/.test(lower(text)));
+  const productSpecific = findAnswer(
+    answers,
+    (text) => /fresh|fragrance|texture|feel|smell|taste|how would you rate/.test(lower(text))
+  );
+  const packaging = findAnswer(answers, (text) => /packaging|hygienic|informative|attractive/.test(lower(text)));
+  const priceOrRecommendation = findAnswer(
+    answers,
+    (text) => /recommend|price|recommendation|value for money|fair price/.test(lower(text))
+  );
+  const improvement = findAnswer(answers, (text) => /improvement|suggestion|suggestions/.test(lower(text)));
+
+  const numericRatings = answers
+    .map((item) => {
+      const value = normalizeAnswer(item.answer);
+      return Number.isFinite(Number(value)) ? Number(value) : null;
+    })
+    .filter((value) => value !== null);
+
+  const averageRating = numericRatings.length
+    ? (numericRatings.reduce((sum, value) => sum + value, 0) / numericRatings.length).toFixed(2)
+    : '';
+
+  return {
+    Timestamp: response.createdAt?.toISOString?.() || new Date().toISOString(),
+    'Employee Name': response.employeeName,
+    'Employee ID': response.employeeId,
+    'Product ID': response.productId,
+    'Product Name': response.productName,
+    'Product Type': response.productLineName,
+    Brand: response.category,
+    Category: response.category,
+    'Overall Quality Rating': overall,
+    'Product-Specific Rating': productSpecific,
+    'Packaging Rating': packaging,
+    'Price or Recommendation Rating': priceOrRecommendation,
+    'Improvement Suggestion': improvement,
+    'Average Rating': averageRating,
+  };
 };
 
 export const appendSurveyToSheet = async (response) => {
@@ -42,24 +102,9 @@ export const appendSurveyToSheet = async (response) => {
 
   try {
     const doc = await getDoc();
-    const summarySheet = await ensureSheet(doc);
-    const productSheet = await ensureSheet(doc, `Product ${response.productId}`);
-
-    const rows = response.answers.map((a) => ({
-      Timestamp: response.createdAt?.toISOString?.() || new Date().toISOString(),
-      'Employee ID': response.employeeId,
-      'Employee Name': response.employeeName,
-      Category: response.category,
-      'Product Line': response.productLineName,
-      'Product Name': response.productName,
-      Variant: response.productVariant,
-      'Product ID': response.productId,
-      Question: a.questionText,
-      Answer: Array.isArray(a.answer) ? a.answer.join(', ') : String(a.answer),
-    }));
-
-    await summarySheet.addRows(rows);
-    await productSheet.addRows(rows);
+    const sheet = await ensureSheet(doc);
+    const row = buildRow(response);
+    await sheet.addRow(row);
     return true;
   } catch (err) {
     console.error('Google Sheets sync failed:', err.message);
