@@ -117,30 +117,23 @@ export const exportAllResponsesToSheet = async (responses) => {
     throw new Error('Google Sheets is not configured. See README for setup.');
   }
 
-  const doc = await getDoc();
-  let sheet = doc.sheetsByTitle['Survey Responses'];
-  if (sheet) {
-    await sheet.delete();
+  try {
+    const doc = await getDoc();
+    let sheet = doc.sheetsByTitle['Survey Responses'];
+    if (sheet) {
+      await sheet.delete();
+    }
+    sheet = await ensureSheet(doc);
+
+    // Use the same 14-column format as appendSurveyToSheet for consistency
+    const rows = responses.map((r) => buildRow(r));
+
+    if (rows.length) await sheet.addRows(rows);
+    return rows.length;
+  } catch (err) {
+    console.error('Export all responses failed:', err.message);
+    throw err;
   }
-  sheet = await ensureSheet(doc);
-
-  const rows = responses.flatMap((r) =>
-    r.answers.map((a) => ({
-      Timestamp: r.createdAt?.toISOString?.() || '',
-      'Employee ID': r.employeeId,
-      'Employee Name': r.employeeName,
-      Category: r.category,
-      'Product Line': r.productLineName,
-      'Product Name': r.productName,
-      Variant: r.productVariant,
-      'Product ID': r.productId,
-      Question: a.questionText,
-      Answer: Array.isArray(a.answer) ? a.answer.join(', ') : String(a.answer),
-    }))
-  );
-
-  if (rows.length) await sheet.addRows(rows);
-  return rows.length;
 };
 
 export const getSheetUrl = () =>
