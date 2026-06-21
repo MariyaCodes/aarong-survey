@@ -115,6 +115,15 @@ const connectDB = async () => {
   await mongoClient.connect();
 
   mongoDb = mongoClient.db('aarong-survey');
+  try {
+    await mongoDb.collection('surveyResponses').createIndex(
+      { productId: 1, employeeId: 1 },
+      { unique: true, background: true }
+    );
+    console.log('Created unique index for surveyResponses(productId, employeeId)');
+  } catch (err) {
+    console.warn('Could not create unique index for surveyResponses:', err.message);
+  }
 
   console.log('MongoDB connected');
 };

@@ -71,8 +71,15 @@ export default function SurveyPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [employeeId, setEmployeeId] = useState('');
 
   useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      setEmployeeId(parsed.employeeId);
+    }
+
     Promise.all([api.getProducts(), api.getMySurveys()])
       .then(([prods, surveys]) => {
         setProducts(prods);
@@ -89,9 +96,12 @@ export default function SurveyPage() {
     setAnswers({});
     try {
       const data = await api.getProductSurvey(product.productId);
-      setSurveyData(data);
-      if (data.alreadySubmitted) {
-        setSuccess('You have already completed this product survey.');
+      const reviewCheck = await api.checkReview(product.productId, employeeId);
+      const alreadyReviewed = reviewCheck.alreadyReviewed || data.alreadySubmitted;
+      const message = reviewCheck.message || (data.alreadySubmitted ? 'You have already completed this product survey.' : '');
+      setSurveyData({ ...data, alreadyReviewed, reviewCheckMessage: message });
+      if (alreadyReviewed) {
+        setSuccess(message);
       }
     } catch (err) {
       setError(err.message);
@@ -126,7 +136,11 @@ export default function SurveyPage() {
       setCompletedIds((prev) => new Set([...prev, selectedProduct.productId]));
       setSurveyData((d) => ({ ...d, alreadySubmitted: true }));
     } catch (err) {
-      setError(err.message);
+      if (err.message === 'You have already reviewed this product.') {
+        setError('You have already reviewed this product.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -161,8 +175,11 @@ export default function SurveyPage() {
           <div className="survey-info">{surveyData.sharedQuestionsNote}</div>
           {error && <div className="error-msg">{error}</div>}
           {success && <div className="success-msg">{success}</div>}
+          {surveyData?.reviewCheckMessage && !success && (
+            <div className="info-msg">{surveyData.reviewCheckMessage}</div>
+          )}
 
-          {!surveyData.alreadySubmitted && (
+          {!surveyData.alreadySubmitted && !surveyData?.alreadyReviewed && (
             <form onSubmit={submitSurvey} className="card">
               {surveyData.questions.map((q, i) => (
                 <div key={q.order ?? i} className="question-block">
